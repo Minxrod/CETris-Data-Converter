@@ -93,6 +93,12 @@ def load_map(args):
 
 
 def output(args):
+    offset = offset2 = 0
+    if len(args) > 2:
+        offset = int(args[2])
+    if len(args) > 3:
+        offset2 = int(args[3])
+
     convdat = None
     if args[1] == "palette":
         if pal is not None:
@@ -101,18 +107,19 @@ def output(args):
                 conv_pal.append([])
                 for item in subpal:
                     val = int(item[0] / 8) + 2 ** 5 * int(item[1] / 8) + 2 ** 10 * int(item[2] / 8)
-                    conv_pal[-1].append(val)
+                    conv_pal[-1].append(val % 256)
+                    conv_pal[-1].append(val // 256)
 
             convdat = converter.convert_lists_to_db(conv_pal, 8)
     elif args[1] == "tile":
         if data is not None:
-            convdat = converter.convert_lists_to_db(data, converter.col[len(pal[0])])
+            convdat = converter.convert_lists_to_db([[y + offset for y in x] for x in data], converter.col[len(pal[0])])
     elif args[1] == "tileset":
         if tiles is not None:
-            convdat = converter.convert_lists_to_db(tiles, 8)
+            convdat = converter.convert_lists_to_db([[x[0] + offset, x[1] + offset2] for x in tiles], 8)
     elif args[1] == "map":
         if tilemap is not None:
-            convdat = converter.convert_lists_to_db(tilemap, 8)
+            convdat = converter.convert_lists_to_db([[y + offset for y in x] for x in tilemap], 8)
     else:
         print("Error: Invalid data type\nPlease choose from: palette, tile, tileset, map")
         return
@@ -126,7 +133,7 @@ commands = [["help", "[command]", 0, 1, edit_help],
             ["tile", "filename", 1, 1, tile],
             ["map", "filename [tile_size]", 1, 2, load_map],
             ["tileset", "filename [tile_size]", 1, 2, tileset],
-            ["print", "datatype [compression]", 0, 1, output]]
+            ["print", "datatype [offset] [offset2]", 1, 3, output]]
 
 select = ""
 arg = []
