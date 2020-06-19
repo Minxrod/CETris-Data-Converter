@@ -35,8 +35,7 @@ def tile(args):
     # if pal is None:
     #     palette(args)
 
-    data = converter.convert_file_simple(args[1], pal)  # generate.convert_file_to_data(args[1], pal)
-    print(data)
+    data = [converter.convert_file_simple(args[1], pal)]  # generate.convert_file_to_data(args[1], pal)
 
 
 def tileset(args):
@@ -113,7 +112,7 @@ def output(args):
             convdat = converter.convert_lists_to_db(conv_pal, 8)
     elif args[1] == "tile":
         if data is not None:
-            convdat = converter.convert_lists_to_db([[y + offset for y in x] for x in data], converter.col[len(pal[0])])
+            convdat = converter.convert_lists_to_db(data, converter.col[len(pal[0])])
     elif args[1] == "tileset":
         if tiles is not None:
             convdat = converter.convert_lists_to_db([[x[0] + offset, x[1] + offset2] for x in tiles], 8)
