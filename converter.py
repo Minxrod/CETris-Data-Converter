@@ -9,9 +9,11 @@ def load_file(file):
 
     return pix, img.size[0], img.size[1]
 
-def adjust_data(data: list):
+def adjust_data(data: list, b=0):
     amount = min(data)
-
+    if b:
+        amount = amount // b * b
+    
     copy = []
     for item in data:
         copy.append(item - amount)
@@ -67,7 +69,7 @@ def convert_image_to_data(pix, u, v, w, h, palette: list, adjust=True):
     pal_offset = 0
     pal_id = 0
     for pal in palette:
-        if set(image_pal) == set(pal):
+        if set(image_pal) <= set(pal):
             pal_id = palette.index(pal)
             pal_offset = pal_id * len(pal)
 

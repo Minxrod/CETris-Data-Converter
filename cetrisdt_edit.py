@@ -54,11 +54,12 @@ def tileset(args):
     else:
         size = 16
 
+    b = len(pal[0])
     for y in range(0, h, size):
         for x in range(0, w, size):
             tile_data = converter.convert_image_to_data(pix, x, y, size, size, pal, adjust=False)
-            tile_adjusted = converter.adjust_data(tile_data)
-            tile_palette = min(tile_data)
+            tile_adjusted = converter.adjust_data(tile_data, b)
+            tile_palette = min(tile_data) // b * b
 
             if tile_adjusted not in data:  # help prevent palette swaps from hogging memory
                 data.append(tile_adjusted)
@@ -80,12 +81,13 @@ def load_map(args):
     else:
         size = 16
 
+    b = len(pal[0])
     for y in range(0, h, size):
         tilemap.append([])
         for x in range(0, w, size):
             tile_data = converter.convert_image_to_data(pix, x, y, size, size, pal, adjust=False)
-            tile_adjusted = converter.adjust_data(tile_data)
-            tile_palette = min(tile_data)
+            tile_adjusted = converter.adjust_data(tile_data, b)
+            tile_palette = min(tile_data) // b * b
 
             tile_info = (data.index(tile_adjusted), tile_palette)
             tilemap[-1].append(tiles.index(tile_info))
@@ -105,7 +107,7 @@ def output(args):
             for subpal in pal:
                 conv_pal.append([])
                 for item in subpal:
-                    val = int(item[0] / 8) + 2 ** 5 * int(item[1] / 8) + 2 ** 10 * int(item[2] / 8)
+                    val = (int(item[0] / 8) << 10) + (int(item[1] / 8) << 5) + (int(item[2] / 8))
                     conv_pal[-1].append(val % 256)
                     conv_pal[-1].append(val // 256)
 
@@ -138,13 +140,19 @@ select = ""
 arg = []
 
 while select != "exit":
-    select = input("? ")
+#    try:
+        select = input("? ")
+        
+        arg = select.split()
+        arg_len = len(arg) - 1
+        cmd_len = len(select)
+        
+        for cmd in commands:
+            if cmd[0] == arg[0]:
+                if cmd[2] <= arg_len <= cmd[3]:
+                    cmd[4](arg)
+                else:
+                    print("Wrong number of arguments")
+#    except Exception as e:
+#        print(e)
 
-    arg = select.split()
-    arg_len = len(arg) - 1
-    cmd_len = len(select)
-
-    for cmd in commands:
-        if cmd[0] == arg[0]:
-            if cmd[2] <= arg_len <= cmd[3]:
-                cmd[4](arg)
