@@ -102,13 +102,13 @@ def output(args):
 			convdat = converter.convert_lists_to_db(conv_pal, 8)
 	elif args[1] == "sprite":
 		if data:
-			convdat = f".db sp{converter.col[len(pal[0])]}bpp\n"
+			convdat = f".db sp{converter.col[len(pal[0])]}bpp\n" if tiles else ""
 			convdat += converter.convert_lists_to_db(data, converter.col[len(pal[0])], per_line=offset if offset else None)
 		else:
 			print(f"Error: Sprite data does not exist")
 			return
 	elif args[1] == "tileset":
-		if tile:
+		if tiles:
 			convdat = converter.convert_lists_to_db([[x[0] + offset, x[1] + offset2] for x in tiles], 8)
 		else:
 			print(f"Error: Tileset data does not exist")
