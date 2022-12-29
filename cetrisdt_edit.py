@@ -1,3 +1,7 @@
+#!/usr/bin/env python3
+import argparse
+import sys
+
 import converter
 
 pal = []
@@ -5,28 +9,15 @@ tiles = []
 data = []
 tilemap = []
 
-
-def edit_help(args):
-	if len(args) > 1:
-		help_cmd = args[1]
-
-		for command in commands:
-			if help_cmd == command[0]:
-				print(command[0] + " " + command[1])
-	else:
-		print("List of commands: ")
-		for command in commands:
-			print(command[0] + " " + command[1])
-
-
 def palette(args):
+	"""
+	filename bpp
+	"""
 	global pal
 
-	b = 8
-	if len(args) > 2:
-		b = int(args[2])
+	b = int(args[1])
 
-	pal = converter.convert_file_to_palette(args[1], b=b)  # generate.convert_file_to_palette(args[1])
+	pal = converter.convert_file_to_palette(args[0], b=b)  # generate.convert_file_to_palette(args[1])
 
 
 def tile(args):
@@ -35,7 +26,7 @@ def tile(args):
 	# if pal is None:
 	#	 palette(args)
 
-	data = [converter.convert_file_simple(args[1], pal)]  # generate.convert_file_to_data(args[1], pal)
+	data = [converter.convert_file_simple(args[0], pal)]  # generate.convert_file_to_data(args[1], pal)
 
 
 def tileset(args):
@@ -44,15 +35,12 @@ def tileset(args):
 	tiles = []
 	data = []
 
-	img_dat = converter.load_file(args[1])
+	img_dat = converter.load_file(args[0])
 	pix = img_dat[0]
 	w = img_dat[1]
 	h = img_dat[2]
 
-	if len(args) > 2:
-		size = int(args[2])
-	else:
-		size = 16
+	size = int(args[1])
 
 	b = len(pal[0])
 	for y in range(0, h, size):
@@ -71,15 +59,12 @@ def load_map(args):
 
 	tilemap = []
 
-	img_dat = converter.load_file(args[1])
+	img_dat = converter.load_file(args[0])
 	pix = img_dat[0]
 	w = img_dat[1]
 	h = img_dat[2]
 
-	if len(args) > 2:
-		size = int(args[2])
-	else:
-		size = 16
+	size = int(args[1])
 
 	b = len(pal[0])
 	for y in range(0, h, size):
@@ -94,6 +79,9 @@ def load_map(args):
 
 
 def output(args):
+	"""
+	label type [offset] [offset2]
+	"""
 	offset = offset2 = 0
 	if len(args) > 2:
 		offset = int(args[2])
@@ -102,7 +90,7 @@ def output(args):
 
 	convdat = None
 	if args[1] == "palette":
-		if pal is not None:
+		if pal:
 			conv_pal = []
 			for subpal in pal:
 				conv_pal.append([])
@@ -112,47 +100,78 @@ def output(args):
 					conv_pal[-1].append(val // 256)
 
 			convdat = converter.convert_lists_to_db(conv_pal, 8)
-	elif args[1] == "tile":
-		if data is not None:
-			convdat = converter.convert_lists_to_db(data, converter.col[len(pal[0])], per_line=offset if offset else None)
+	elif args[1] == "sprite":
+		if data:
+			convdat = f".db sp{converter.col[len(pal[0])]}bpp\n"
+			convdat += converter.convert_lists_to_db(data, converter.col[len(pal[0])], per_line=offset if offset else None)
+		else:
+			print(f"Error: Sprite data does not exist")
+			return
 	elif args[1] == "tileset":
-		if tiles is not None:
+		if tile:
 			convdat = converter.convert_lists_to_db([[x[0] + offset, x[1] + offset2] for x in tiles], 8)
+		else:
+			print(f"Error: Tileset data does not exist")
+			return
 	elif args[1] == "map":
-		if tilemap is not None:
+		if tilemap:
 			convdat = converter.convert_lists_to_db([[y + offset for y in x] for x in tilemap], 8)
+		else:
+			print(f"Error: Map data does not exist")
+			return
 	else:
-		print("Error: Invalid data type\nPlease choose from: palette, tile, tileset, map")
+		print(f"Error: Invalid data type '{args[1]}'\nPlease choose from: palette, sprite, tileset, map")
 		return
 
-	print(args[1] + ":\n" + convdat)
+	print(args[0] + ":\n" + convdat)
 
 
-commands = [["help", "[command]", 0, 1, edit_help],
-			["exit", "", 0, 0, exit],
-			["palette", "filename [bpp]", 1, 2, palette],
-			["tile", "filename", 1, 1, tile],
-			["map", "filename [tile_size]", 1, 2, load_map],
-			["tileset", "filename [tile_size]", 1, 2, tileset],
-			["print", "datatype [offset] [offset2]", 1, 3, output]]
+parser = argparse.ArgumentParser(prog="CEtris image converter", description="CEtrisDT conversion tools.")
 
-select = ""
-arg = []
+parser.add_argument("-v", "--version", action="version", version="%(prog)s 0.3 (c) 2020-2022")
 
-while select != "exit":
-	try:
-		select = input("? ")
-		
-		arg = select.split()
-		arg_len = len(arg) - 1
-		cmd_len = len(select)
-		
-		for cmd in commands:
-			if cmd[0] == arg[0]:
-				if cmd[2] <= arg_len <= cmd[3]:
-					cmd[4](arg)
-				else:
-					print("Wrong number of arguments")
-	except Exception as e:
-		print(e)
+parser.add_argument("-p", "--palette", dest="palette", nargs=2, metavar=("filename","bpp"), help="source palette image")
+parser.add_argument("-s", "--sprite", dest="sprite", nargs=1, metavar="filename", help="source sprite image")
+parser.add_argument("-t", "--tileset", dest="tileset", nargs=2, metavar=("filename", "tile_size"), help="source tileset image")
+parser.add_argument("-m", "--map", dest="map", nargs=2, metavar=("filename", "tile_size"), help="source map image")
 
+parser.add_argument("-d", "--data", dest="format", action="append", default=[], nargs='*', help="Specify output format. Provide a label name and type, and optionally a data offset.")
+
+args = parser.parse_args()
+
+print(args)
+
+if not args.format:
+	print("No output specified!")
+	sys.exit(1)
+
+if args.palette:
+	if int(args.palette[1]) not in [1,2,4,8]:
+		print("Invalid BPP specified")
+		sys.exit(1)
+	palette(args.palette)
+if args.sprite:
+	if not pal:
+		print("Palette file not specified")
+		sys.exit(1)
+	tile(args.sprite)
+if args.tileset:
+	if not pal:
+		print("Palette file not specified")
+		sys.exit(1)
+	tileset(args.tileset)
+if args.map:
+	if not pal:
+		print("Palette file not specified")
+		sys.exit(1)
+	if not tiles:
+		print("Tileset not specified")
+		sys.exit(1)
+	load_map(args.map)
+
+if args.format:
+	for form in args.format:
+		if not 2 <= len(form) <= 4:
+			print("Invalid number of arguments")
+			sys.exit(1)
+		output(form)
